@@ -87,15 +87,10 @@ const baseConfig = {
             },
         ],
     },
-    plugins: [
-        new webpack.ProvidePlugin({
-            Buffer: ['buffer', 'Buffer'],
-            process: 'process/browser',
-        }),
-    ],
 };
 
 const pluginConfig = { ...baseConfig, entry: './src/index.ts',
+    target: 'node',
     resolve: {
         alias: {
             api: path.resolve(__dirname, 'api'),
@@ -108,7 +103,10 @@ const pluginConfig = { ...baseConfig, entry: './src/index.ts',
         path: distDir,
     },
     plugins: [
-        ...baseConfig.plugins,
+        new webpack.ProvidePlugin({
+            Buffer: ['buffer', 'Buffer'],
+            process: 'process/browser',
+        }),
         new CopyPlugin({
             patterns: [
                 {
@@ -123,6 +121,21 @@ const pluginConfig = { ...baseConfig, entry: './src/index.ts',
         }),
     ] };
 
+const webviewConfig = { ...baseConfig, entry: './src/webview.ts',
+    target: 'web',
+    resolve: {
+        fallback: {
+            ...moduleFallback,
+            fs: false,
+        },
+        extensions: ['.js', '.tsx', '.ts', '.json'],
+    },
+    output: {
+        filename: 'webview.js',
+        path: distDir,
+    },
+};
+
 const createArchiveConfig = {
     stats: 'errors-only',
     entry: './dist/index.js',
@@ -133,14 +146,11 @@ const createArchiveConfig = {
         filename: 'index.js',
         path: publishDir,
     },
-    plugins: [
-        ...baseConfig.plugins,
-        {
-            apply(compiler) {
-                compiler.hooks.done.tap('archiveOnBuildListener', onBuildCompleted);
-            },
+    plugins: [{
+        apply(compiler) {
+            compiler.hooks.done.tap('archiveOnBuildListener', onBuildCompleted);
         },
-    ],
+    }],
 };
 
 module.exports = (env) => {
@@ -149,7 +159,7 @@ module.exports = (env) => {
         fs.removeSync(distDir);
         fs.removeSync(publishDir);
         fs.mkdirpSync(publishDir);
-        return [pluginConfig];
+        return [pluginConfig, webviewConfig];
     }
     if (configName === 'buildExtraScripts') {
         return [];

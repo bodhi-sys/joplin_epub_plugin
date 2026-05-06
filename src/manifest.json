@@ -7,7 +7,7 @@
   "description": "Imports EPUB files into Joplin",
   "author": "Jules",
   "homepage_url": "https://github.com/jules/joplin-plugin-epub-import",
-  "app_min_version_mobile": "3.0.0",
+  "app_min_version_mobile": "2.10.0",
   "platforms": ["desktop", "mobile"],
   "categories": ["productivity"]
 }

@@ -3,24 +3,6 @@ import { ToolbarButtonLocation, FileSystemItem } from 'api/types';
 import { parseEpub } from './epubParser';
 import { convertToMarkdown } from './markdownConverter';
 
-async function importEpubData(data: Buffer, title: string) {
-    const book = await parseEpub(data);
-
-    const notebook = await joplin.data.post(['folders'], null, {
-        title: book.title || title
-    });
-
-    for (const chapter of book.chapters) {
-        const markdown = convertToMarkdown(chapter.content);
-        await joplin.data.post(['notes'], null, {
-            title: chapter.title,
-            body: markdown,
-            parent_id: notebook.id,
-            author: book.author
-        });
-    }
-}
-
 joplin.plugins.register({
     onStart: async function() {
         const panels = joplin.views.panels;
@@ -52,17 +34,29 @@ joplin.plugins.register({
 
         await joplin.views.toolbarButtons.create('importEpubButton', commandName, ToolbarButtonLocation.NoteToolbar);
 
+        let currentNotebook: any = null;
+        let bookAuthor = 'Unknown';
+
         panels.onMessage(panel, async (message: any) => {
-            if (message.type === 'epubSelected') {
-                const buffer = Buffer.from(message.data, 'base64');
-                try {
-                    await importEpubData(buffer, message.name);
-                    await joplin.views.dialogs.showMessageBox('Import completed successfully!');
-                    await panels.hide(panel);
-                } catch (error) {
-                    console.error('Import failed:', error);
-                    await joplin.views.dialogs.showMessageBox('Import failed: ' + error.message);
+            if (message.type === 'importStart') {
+                bookAuthor = message.author;
+                currentNotebook = await joplin.data.post(['folders'], null, {
+                    title: message.title
+                });
+            } else if (message.type === 'chapterImport') {
+                if (currentNotebook) {
+                    await joplin.data.post(['notes'], null, {
+                        title: message.title,
+                        body: message.content,
+                        parent_id: currentNotebook.id,
+                        author: bookAuthor
+                    });
                 }
+            } else if (message.type === 'importComplete') {
+                await joplin.views.dialogs.showMessageBox('Import completed successfully!');
+                await panels.hide(panel);
+            } else if (message.type === 'importError') {
+                await joplin.views.dialogs.showMessageBox('Import failed: ' + message.message);
             } else if (message.type === 'close') {
                 await panels.hide(panel);
             }
