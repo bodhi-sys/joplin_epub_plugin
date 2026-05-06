@@ -1,5 +1,5 @@
 import joplin from 'api';
-import { ToolbarButtonLocation } from 'api/types';
+import { ToolbarButtonLocation, MenuItemLocation } from 'api/types';
 
 joplin.plugins.register({
     onStart: async function() {
@@ -7,13 +7,17 @@ joplin.plugins.register({
         const panel = await panels.create('epubImportPanel');
 
         await panels.setHtml(panel, `
-            <div style="padding: 20px; font-family: sans-serif;">
-                <h3>Import EPUB</h3>
-                <p>Select an EPUB file to import:</p>
-                <input type="file" id="epubFile" accept=".epub">
-                <div id="status" style="margin-top: 10px; color: blue;"></div>
-                <div style="margin-top: 20px;">
-                    <button onclick="webviewApi.postMessage({type: 'close'})">Close</button>
+            <div style="padding: 20px; font-family: sans-serif; background-color: white; color: black;">
+                <h3 style="margin-top: 0;">Import EPUB</h3>
+                <p>Select an EPUB file to begin the import process.</p>
+                <div style="margin-bottom: 15px;">
+                    <input type="file" id="epubFile" accept=".epub" style="width: 100%;">
+                </div>
+                <div id="status" style="padding: 10px; border-radius: 4px; background-color: #f0f0f0; min-height: 20px;">
+                    Ready to import.
+                </div>
+                <div style="margin-top: 20px; text-align: right;">
+                    <button onclick="webviewApi.postMessage({type: 'close'})" style="padding: 5px 15px;">Close</button>
                 </div>
             </div>
         `);
@@ -25,14 +29,21 @@ joplin.plugins.register({
 
         await joplin.commands.register({
             name: commandName,
-            label: 'Import EPUB',
+            label: 'Import EPUB File',
             iconName: 'fas fa-file-import',
             execute: async () => {
                 await panels.show(panel, true);
             },
         });
 
-        await joplin.views.toolbarButtons.create('importEpubButton', commandName, ToolbarButtonLocation.NoteToolbar);
+        // Register UI elements
+        try {
+            await joplin.views.menuItems.create('toolsImportEpub', commandName, MenuItemLocation.Tools);
+            await joplin.views.menuItems.create('fileImportEpub', commandName, MenuItemLocation.File);
+            await joplin.views.toolbarButtons.create('importEpubButton', commandName, ToolbarButtonLocation.EditorToolbar);
+        } catch (e) {
+            console.error('Failed to create some UI elements:', e);
+        }
 
         let currentNotebook: any = null;
         let bookAuthor = 'Unknown';
@@ -53,7 +64,7 @@ joplin.plugins.register({
                     });
                 }
             } else if (message.type === 'importComplete') {
-                await joplin.views.dialogs.showMessageBox('Import completed successfully!');
+                await joplin.views.dialogs.showMessageBox('EPUB import completed successfully!');
                 await panels.hide(panel);
             } else if (message.type === 'importError') {
                 await joplin.views.dialogs.showMessageBox('Import failed: ' + message.message);
@@ -65,11 +76,11 @@ joplin.plugins.register({
         const version = await joplin.versionInfo() as any;
         if (version.platform !== 'mobile') {
             try {
-                // Use joplin.require to load the desktop entry point
+                // @ts-ignore
                 const desktop = joplin.require('./desktopEntryPoint');
                 await desktop.setupDesktopImport();
             } catch (e) {
-                console.error('Failed to load desktop import module:', e);
+                console.warn('Native desktop import module could not be initialized:', e);
             }
         }
     },
