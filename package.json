@@ -1,0 +1,37 @@
+{
+  "name": "joplin-plugin-epub-import",
+  "version": "1.0.0",
+  "description": "Imports EPUB files into Joplin",
+  "main": "dist/index.js",
+  "scripts": {
+    "dist": "webpack --env joplin-plugin-config=buildMain && webpack --env joplin-plugin-config=buildExtraScripts && webpack --env joplin-plugin-config=createArchive",
+    "prepare": "npm run dist",
+    "test": "jest"
+  },
+  "keywords": [
+    "joplin-plugin"
+  ],
+  "author": "Jules",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/jest": "^29.0.0",
+    "@types/node": "^18.0.0",
+    "@types/turndown": "^5.0.6",
+    "chalk": "^4.1.2",
+    "copy-webpack-plugin": "^11.0.0",
+    "fs-extra": "^11.0.0",
+    "generator-joplin": "^3.5.1",
+    "glob": "^10.0.0",
+    "jest": "^29.0.0",
+    "tar": "^6.1.11",
+    "ts-jest": "^29.0.0",
+    "ts-loader": "^9.0.0",
+    "typescript": "^5.0.0",
+    "webpack": "^5.0.0",
+    "webpack-cli": "^5.0.0"
+  },
+  "dependencies": {
+    "epub2": "^3.0.2",
+    "turndown": "^7.1.2"
+  }
+}
