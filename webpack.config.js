@@ -6,6 +6,7 @@ const CopyPlugin = require('copy-webpack-plugin');
 const tar = require('tar');
 const { glob } = require('glob');
 const execSync = require('child_process').execSync;
+const webpack = require('webpack');
 
 const rootDir = path.resolve(__dirname);
 const distDir = path.resolve(rootDir, 'dist');
@@ -20,6 +21,15 @@ const moduleFallback = {};
 for (const moduleName of builtinModules) {
     moduleFallback[moduleName] = false;
 }
+
+// Add polyfills for mobile (constrained environment)
+moduleFallback['fs'] = false;
+moduleFallback['path'] = require.resolve('path-browserify');
+moduleFallback['stream'] = require.resolve('stream-browserify');
+moduleFallback['buffer'] = require.resolve('buffer/');
+moduleFallback['util'] = require.resolve('util/');
+moduleFallback['events'] = require.resolve('events/');
+moduleFallback['zlib'] = require.resolve('browserify-zlib');
 
 function readManifest(manifestPath) {
     const content = fs.readFileSync(manifestPath, 'utf8');
@@ -67,7 +77,6 @@ function onBuildCompleted() {
 
 const baseConfig = {
     mode: 'production',
-    target: 'node',
     stats: 'errors-only',
     module: {
         rules: [
@@ -78,6 +87,12 @@ const baseConfig = {
             },
         ],
     },
+    plugins: [
+        new webpack.ProvidePlugin({
+            Buffer: ['buffer', 'Buffer'],
+            process: 'process/browser',
+        }),
+    ],
 };
 
 const pluginConfig = { ...baseConfig, entry: './src/index.ts',
@@ -93,6 +108,7 @@ const pluginConfig = { ...baseConfig, entry: './src/index.ts',
         path: distDir,
     },
     plugins: [
+        ...baseConfig.plugins,
         new CopyPlugin({
             patterns: [
                 {
@@ -100,7 +116,7 @@ const pluginConfig = { ...baseConfig, entry: './src/index.ts',
                     context: path.resolve(__dirname, 'src'),
                     to: path.resolve(__dirname, 'dist'),
                     globOptions: {
-                        ignore: ['**/*.ts', '**/*.tsx', 'api/**'],
+                        ignore: ['**/*.ts', '**/*.tsx'],
                     },
                 },
             ],
@@ -117,11 +133,14 @@ const createArchiveConfig = {
         filename: 'index.js',
         path: publishDir,
     },
-    plugins: [{
-        apply(compiler) {
-            compiler.hooks.done.tap('archiveOnBuildListener', onBuildCompleted);
+    plugins: [
+        ...baseConfig.plugins,
+        {
+            apply(compiler) {
+                compiler.hooks.done.tap('archiveOnBuildListener', onBuildCompleted);
+            },
         },
-    }],
+    ],
 };
 
 module.exports = (env) => {

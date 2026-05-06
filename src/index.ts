@@ -1,10 +1,74 @@
 import joplin from 'api';
-import { FileSystemItem, ImportContext } from 'api/types';
+import { ToolbarButtonLocation, FileSystemItem } from 'api/types';
 import { parseEpub } from './epubParser';
 import { convertToMarkdown } from './markdownConverter';
 
+async function importEpubData(data: Buffer, title: string) {
+    const book = await parseEpub(data);
+
+    const notebook = await joplin.data.post(['folders'], null, {
+        title: book.title || title
+    });
+
+    for (const chapter of book.chapters) {
+        const markdown = convertToMarkdown(chapter.content);
+        await joplin.data.post(['notes'], null, {
+            title: chapter.title,
+            body: markdown,
+            parent_id: notebook.id,
+            author: book.author
+        });
+    }
+}
+
 joplin.plugins.register({
     onStart: async function() {
+        const panels = joplin.views.panels;
+        const panel = await panels.create('epubImportPanel');
+
+        await panels.setHtml(panel, `
+            <div style="padding: 20px; font-family: sans-serif;">
+                <h3>Import EPUB</h3>
+                <p>Select an EPUB file to import:</p>
+                <input type="file" id="epubFile" accept=".epub">
+                <div id="status" style="margin-top: 10px; color: blue;"></div>
+                <button onclick="webviewApi.postMessage({type: 'close'})" style="margin-top: 20px;">Close</button>
+            </div>
+        `);
+
+        await panels.addScript(panel, './webview.js');
+        await panels.show(panel, false);
+
+        const commandName = 'importEpub';
+
+        await joplin.commands.register({
+            name: commandName,
+            label: 'Import EPUB',
+            iconName: 'fas fa-file-import',
+            execute: async () => {
+                await panels.show(panel, true);
+            },
+        });
+
+        await joplin.views.toolbarButtons.create('importEpubButton', commandName, ToolbarButtonLocation.NoteToolbar);
+
+        panels.onMessage(panel, async (message: any) => {
+            if (message.type === 'epubSelected') {
+                const buffer = Buffer.from(message.data, 'base64');
+                try {
+                    await importEpubData(buffer, message.name);
+                    await joplin.views.dialogs.showMessageBox('Import completed successfully!');
+                    await panels.hide(panel);
+                } catch (error) {
+                    console.error('Import failed:', error);
+                    await joplin.views.dialogs.showMessageBox('Import failed: ' + error.message);
+                }
+            } else if (message.type === 'close') {
+                await panels.hide(panel);
+            }
+        });
+
+        // Desktop-only native import module
         await joplin.interop.registerImportModule({
             description: 'EPUB Importer',
             format: 'epub',
@@ -12,15 +76,13 @@ joplin.plugins.register({
             fileExtensions: ['epub'],
             isNoteArchive: false,
 
-            onExec: async (context: ImportContext) => {
+            onExec: async (context: any) => {
                 const book = await parseEpub(context.sourcePath);
 
-                // Create a new notebook
                 const notebook = await joplin.data.post(['folders'], null, {
                     title: book.title
                 });
 
-                // Create notes for each chapter
                 for (const chapter of book.chapters) {
                     const markdown = convertToMarkdown(chapter.content);
                     await joplin.data.post(['notes'], null, {
