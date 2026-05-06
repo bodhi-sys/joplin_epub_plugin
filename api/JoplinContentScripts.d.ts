@@ -1,4 +1,4 @@
-import Plugin from '../Plugin';
+
 import { ContentScriptType } from './types';
 export default class JoplinContentScripts {
     private plugin;

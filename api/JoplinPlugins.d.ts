@@ -1,4 +1,4 @@
-import Plugin from '../Plugin';
+
 import { ContentScriptType, Script } from './types';
 /**
  * This class provides access to plugin-related features.

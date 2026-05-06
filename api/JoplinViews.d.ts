@@ -1,4 +1,4 @@
-import Plugin from '../Plugin';
+
 import JoplinViewsDialogs from './JoplinViewsDialogs';
 import JoplinViewsMenuItems from './JoplinViewsMenuItems';
 import JoplinViewsMenus from './JoplinViewsMenus';

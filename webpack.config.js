@@ -22,14 +22,17 @@ for (const moduleName of builtinModules) {
     moduleFallback[moduleName] = false;
 }
 
-// Add polyfills for mobile (constrained environment)
-moduleFallback['fs'] = false;
-moduleFallback['path'] = require.resolve('path-browserify');
-moduleFallback['stream'] = require.resolve('stream-browserify');
-moduleFallback['buffer'] = require.resolve('buffer/');
-moduleFallback['util'] = require.resolve('util/');
-moduleFallback['events'] = require.resolve('events/');
-moduleFallback['zlib'] = require.resolve('browserify-zlib');
+// Add polyfills for webview (browser environment)
+const browserFallback = {
+    ...moduleFallback,
+    fs: false,
+    path: require.resolve('path-browserify'),
+    stream: require.resolve('stream-browserify'),
+    buffer: require.resolve('buffer/'),
+    util: require.resolve('util/'),
+    events: require.resolve('events/'),
+    zlib: require.resolve('browserify-zlib'),
+};
 
 function readManifest(manifestPath) {
     const content = fs.readFileSync(manifestPath, 'utf8');
@@ -90,12 +93,22 @@ const baseConfig = {
 };
 
 const pluginConfig = { ...baseConfig, entry: './src/index.ts',
-    target: 'node',
+    target: 'web',
     resolve: {
         alias: {
             api: path.resolve(__dirname, 'api'),
         },
-        fallback: moduleFallback,
+        fallback: {
+            ...moduleFallback,
+            fs: false,
+            buffer: false,
+            path: false,
+            stream: false,
+            util: false,
+            events: false,
+            zlib: false,
+            process: false,
+        },
         extensions: ['.js', '.tsx', '.ts', '.json'],
     },
     output: {
@@ -103,10 +116,6 @@ const pluginConfig = { ...baseConfig, entry: './src/index.ts',
         path: distDir,
     },
     plugins: [
-        new webpack.ProvidePlugin({
-            Buffer: ['buffer', 'Buffer'],
-            process: 'process/browser',
-        }),
         new CopyPlugin({
             patterns: [
                 {
@@ -121,19 +130,38 @@ const pluginConfig = { ...baseConfig, entry: './src/index.ts',
         }),
     ] };
 
+const desktopConfig = { ...baseConfig, entry: './src/desktopEntryPoint.ts',
+    target: 'node',
+    resolve: {
+        alias: {
+            api: path.resolve(__dirname, 'api'),
+        },
+        fallback: moduleFallback,
+        extensions: ['.js', '.tsx', '.ts', '.json'],
+    },
+    output: {
+        filename: 'desktopEntryPoint.js',
+        path: distDir,
+        libraryTarget: 'commonjs',
+    },
+};
+
 const webviewConfig = { ...baseConfig, entry: './src/webview.ts',
     target: 'web',
     resolve: {
-        fallback: {
-            ...moduleFallback,
-            fs: false,
-        },
+        fallback: browserFallback,
         extensions: ['.js', '.tsx', '.ts', '.json'],
     },
     output: {
         filename: 'webview.js',
         path: distDir,
     },
+    plugins: [
+        new webpack.ProvidePlugin({
+            Buffer: ['buffer', 'Buffer'],
+            process: 'process/browser',
+        }),
+    ],
 };
 
 const createArchiveConfig = {
@@ -159,7 +187,7 @@ module.exports = (env) => {
         fs.removeSync(distDir);
         fs.removeSync(publishDir);
         fs.mkdirpSync(publishDir);
-        return [pluginConfig, webviewConfig];
+        return [pluginConfig, desktopConfig, webviewConfig];
     }
     if (configName === 'buildExtraScripts') {
         return [];

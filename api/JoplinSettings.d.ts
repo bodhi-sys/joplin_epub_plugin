@@ -1,4 +1,4 @@
-import Plugin from '../Plugin';
+
 import { SettingItem, SettingSection } from './types';
 export interface ChangeEvent {
     /**

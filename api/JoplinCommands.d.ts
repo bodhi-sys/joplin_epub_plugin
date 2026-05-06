@@ -1,5 +1,5 @@
 import { Command } from './types';
-import Plugin from '../Plugin';
+
 /**
  * This class allows executing or registering new Joplin commands. Commands
  * can be executed or associated with

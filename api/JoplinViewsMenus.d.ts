@@ -1,5 +1,5 @@
 import { MenuItem, MenuItemLocation } from './types';
-import Plugin from '../Plugin';
+
 /**
  * Allows creating menus.
  *

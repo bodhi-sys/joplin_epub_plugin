@@ -1,7 +1,5 @@
 import joplin from 'api';
-import { ToolbarButtonLocation, FileSystemItem } from 'api/types';
-import { parseEpub } from './epubParser';
-import { convertToMarkdown } from './markdownConverter';
+import { ToolbarButtonLocation } from 'api/types';
 
 joplin.plugins.register({
     onStart: async function() {
@@ -14,7 +12,9 @@ joplin.plugins.register({
                 <p>Select an EPUB file to import:</p>
                 <input type="file" id="epubFile" accept=".epub">
                 <div id="status" style="margin-top: 10px; color: blue;"></div>
-                <button onclick="webviewApi.postMessage({type: 'close'})" style="margin-top: 20px;">Close</button>
+                <div style="margin-top: 20px;">
+                    <button onclick="webviewApi.postMessage({type: 'close'})">Close</button>
+                </div>
             </div>
         `);
 
@@ -62,31 +62,15 @@ joplin.plugins.register({
             }
         });
 
-        // Desktop-only native import module
-        await joplin.interop.registerImportModule({
-            description: 'EPUB Importer',
-            format: 'epub',
-            sources: [FileSystemItem.File],
-            fileExtensions: ['epub'],
-            isNoteArchive: false,
-
-            onExec: async (context: any) => {
-                const book = await parseEpub(context.sourcePath);
-
-                const notebook = await joplin.data.post(['folders'], null, {
-                    title: book.title
-                });
-
-                for (const chapter of book.chapters) {
-                    const markdown = convertToMarkdown(chapter.content);
-                    await joplin.data.post(['notes'], null, {
-                        title: chapter.title,
-                        body: markdown,
-                        parent_id: notebook.id,
-                        author: book.author
-                    });
-                }
-            },
-        });
+        const version = await joplin.versionInfo() as any;
+        if (version.platform !== 'mobile') {
+            try {
+                // Use joplin.require to load the desktop entry point
+                const desktop = joplin.require('./desktopEntryPoint');
+                await desktop.setupDesktopImport();
+            } catch (e) {
+                console.error('Failed to load desktop import module:', e);
+            }
+        }
     },
 });

@@ -1,4 +1,4 @@
-import Plugin from '../Plugin';
+
 import { ActivationCheckCallback, ViewHandle, UpdateCallback, EditorPluginCallbacks } from './types';
 interface SaveNoteOptions {
     /**

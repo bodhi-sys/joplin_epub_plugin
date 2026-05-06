@@ -1,4 +1,4 @@
-import Plugin from '../Plugin';
+
 import { ViewHandle } from './types';
 /**
  * Allows creating and managing view panels. View panels allow displaying any HTML

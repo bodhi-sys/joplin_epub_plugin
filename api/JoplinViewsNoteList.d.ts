@@ -1,5 +1,5 @@
 import { Store } from 'redux';
-import Plugin from '../Plugin';
+
 import { ListRenderer } from './noteListType';
 /**
  * This API allows you to customise how each note in the note list is rendered.

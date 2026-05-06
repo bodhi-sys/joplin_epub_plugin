@@ -1,4 +1,4 @@
-import Plugin from '../Plugin';
+
 export default class JoplinWindow {
     private store_;
     constructor(_plugin: Plugin, store: any);

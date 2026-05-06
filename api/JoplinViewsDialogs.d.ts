@@ -1,4 +1,4 @@
-import Plugin from '../Plugin';
+
 import { ButtonSpec, ViewHandle, DialogResult, Toast } from './types';
 /**
  * Allows creating and managing dialogs. A dialog is modal window that

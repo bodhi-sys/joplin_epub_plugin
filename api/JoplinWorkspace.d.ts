@@ -1,5 +1,5 @@
-import Plugin from '../Plugin';
-import { FolderEntity } from '../../database/types';
+
+
 import { Disposable, EditContextMenuFilterObject, FilterHandler } from './types';
 declare enum ItemChangeEventType {
     Create = 1,
@@ -90,7 +90,7 @@ export default class JoplinWorkspace {
      * interface. In that case, that function would return the last selected
      * folder.
      */
-    selectedFolder(): Promise<FolderEntity>;
+    selectedFolder(): Promise<any>;
     /**
      * Gets the IDs of the selected notes (can be zero, one, or many). Use the data API to retrieve information about these notes.
      */
